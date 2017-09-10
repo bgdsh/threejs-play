@@ -6,6 +6,7 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "preserveConstEnums": true,
+        "sourceMap": true,
         "suppressImplicitAnyIndexErrors": true,
         "outDir": "./lib/"
     },

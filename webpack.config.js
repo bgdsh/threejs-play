@@ -4,7 +4,7 @@ const HTMLWebpackPluginConfig = new HtmlWebpackPlugin({
     template: __dirname + '/src/index.html',
     filename: 'index.html',
     inject: 'body'
-})
+});
 
 /* Configure BrowserSync */
 const BrowserSyncPlugin = require('browser-sync-webpack-plugin')
