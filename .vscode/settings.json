@@ -1,0 +1,4 @@
+{
+    "vim.enableNeovim": false,
+    "tslint.enable": true
+}
