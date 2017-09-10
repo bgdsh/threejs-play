@@ -53,7 +53,7 @@ function init() {
 	renderer.setSize(window.innerWidth, window.innerHeight)
 	container.appendChild(renderer.domElement)
 
-	document.addEventListener('mouseMove', onDocumentMouseMove, false)
+	document.addEventListener('mousemove', onDocumentMouseMove, false)
 	window.addEventListener('resize', onWindowResize, false)
 }
 
