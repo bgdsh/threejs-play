@@ -2,14 +2,13 @@
 import './style.css'
 // three.js
 import * as THREE from 'three'
-import {default as Stats} from 'stats.js/src/Stats'
-console.log(Stats)
-let container:HTMLDivElement
+
+
+let container
 let camera:THREE.PerspectiveCamera, scene:THREE.Scene, raycaster:THREE.Raycaster, renderer:THREE.WebGLRenderer
 
 let mouse = new THREE.Vector2(), INTERSECTED
 let radius = 100, theta = 0
-let stats
 
 init()
 animate()
@@ -54,8 +53,6 @@ function init() {
 	renderer.setSize(window.innerWidth, window.innerHeight)
 	container.appendChild(renderer.domElement)
 
-	stats = new Stats()
-	container.appendChild(stats.dom)
 	document.addEventListener('mousemove', onDocumentMouseMove, false)
 	window.addEventListener('resize', onWindowResize, false)
 }
@@ -76,7 +73,6 @@ function onDocumentMouseMove(event) {
 function animate() {
 	requestAnimationFrame(animate)
 	render()
-	stats.update()
 }
 
 function render() {
