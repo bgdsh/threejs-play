@@ -6,6 +6,8 @@ const HTMLWebpackPluginConfig = new HtmlWebpackPlugin({
     inject: 'body'
 });
 
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
 /* Configure BrowserSync */
 const BrowserSyncPlugin = require('browser-sync-webpack-plugin')
 const BrowserSyncPluginConfig = new BrowserSyncPlugin({
@@ -53,5 +55,10 @@ module.exports = {
         ]
     },
     resolve: { extensions: [".web.ts", ".web.js", ".ts", ".js"] },
-    plugins: [HTMLWebpackPluginConfig, BrowserSyncPluginConfig, ProgressBarPluginConfig]
+    plugins: [
+        HTMLWebpackPluginConfig,
+        BrowserSyncPluginConfig,
+        ProgressBarPluginConfig,
+        new CopyWebpackPlugin([{from: './src/models', to: 'models'}])
+    ]
 }

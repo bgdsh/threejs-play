@@ -1,14 +1,35 @@
+/**
+ * Copy geometry/colors/lookuptable code
+ */
+
 // add styles
 import './style.css'
 // three.js
 import * as THREE from 'three'
+import THREELut from './three.lut'
+THREELut(THREE)
 import {default as Stats} from 'stats.js/src/Stats'
-console.log(Stats)
-let container:HTMLDivElement
-let camera:THREE.PerspectiveCamera, scene:THREE.Scene, raycaster:THREE.Raycaster, renderer:THREE.WebGLRenderer
 
-let mouse = new THREE.Vector2(), INTERSECTED
-let radius = 100, theta = 0
+let container:HTMLDivElement
+let camera:THREE.PerspectiveCamera
+let scene:THREE.Scene 
+let ambientLight:THREE.AmbientLight
+let directionalLight:THREE.DirectionalLight
+let raycaster:THREE.Raycaster
+let renderer:THREE.WebGLRenderer
+
+let colorMap:String
+let numberOfColors:Number
+let legendLayout:String
+let lut
+
+let mouse = new THREE.Vector2()
+let position:THREE.Vector3
+let mesh:THREE.Mesh
+let rotWorldMatrix:THREE.Matrix4
+let INTERSECTED
+let radius = 100
+let theta = 0
 let stats
 
 init()
@@ -18,46 +39,100 @@ function init() {
 	container = document.createElement('div')
 	document.body.appendChild(container)
 
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
+	// Scene
 	scene = new THREE.Scene()
-	scene.background = new THREE.Color(0xf0f0f0)
+	scene.background = new THREE.Color(0xffffff)
 
-	let light = new THREE.DirectionalLight(0xffffff, 1)
-	light.position.set(1,1,1).normalize()
-	scene.add(light)
+	//Camera
+	camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 1, 10000)
+	camera.position.x = 17
+	camera.position.y = 9
+	camera.position.z = 32
+	camera.name = 'camera'
+	scene.add(camera)
 
-	let geometry = new THREE.BoxBufferGeometry(20, 20, 20)
+	// Light
+	ambientLight = new THREE.AmbientLight(0x4444)
+	ambientLight.name = 'ambientLight'
+	scene.add(ambientLight)
 
-	for (let i = 0; i < 2000; i ++) {
-		let obj = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({
-			color: Math.random() * 0xFFFFFF
-		}))
-		obj.position.x = Math.random() * 800 - 400
-		obj.position.y = Math.random() * 800 - 400
-		obj.position.z = Math.random() * 800 - 400
+	colorMap = 'rainbow'
+	numberOfColors = 512
 
-		obj.rotation.x = Math.random() * 2 * Math.PI
-		obj.rotation.y = Math.random() * 2 * Math.PI
-		obj.rotation.z = Math.random() * 2 * Math.PI
+	legendLayout = 'vertical'
 
-		obj.scale.x = Math.random() + 0.5
-		obj.scale.y = Math.random() + 0.5
-		obj.scale.z = Math.random() + 0.5
+	loadModel(colorMap, numberOfColors, legendLayout)
 
-		scene.add(obj)
-	}
+	directionalLight = new THREE.DirectionalLight(0xffffff, 0.7)
+	directionalLight.position.x = 17
+	directionalLight.position.y = 9
+	directionalLight.position.z = 30
+	directionalLight.name = 'directionalLight'
+	scene.add(directionalLight)
 
-	raycaster = new THREE.Raycaster()
-
-	renderer = new THREE.WebGLRenderer()
+	renderer = new THREE.WebGLRenderer({antialias: true})
 	renderer.setPixelRatio(window.devicePixelRatio)
 	renderer.setSize(window.innerWidth, window.innerHeight)
 	container.appendChild(renderer.domElement)
-
+	
 	stats = new Stats()
 	container.appendChild(stats.dom)
 	document.addEventListener('mousemove', onDocumentMouseMove, false)
 	window.addEventListener('resize', onWindowResize, false)
+
+	window.addEventListener('resize', onWindowResize, false)
+	window.addEventListener('keydown', onKeyDown, true)
+}
+
+function loadModel(colorMap:String, numberOfColors:Number, legendLayout:String) {
+	const loader = new THREE.BufferGeometryLoader()
+	loader.load('models/json/pressure.json', function(geometry:THREE.BufferGeometry) {
+		geometry.computeVertexNormals()
+		geometry.normalizeNormals()
+		let material:THREE.MeshLambertMaterial = new THREE.MeshLambertMaterial({
+			side: THREE.DoubleSide,
+			color: 0xF5F5F5,
+			vertexColors: THREE.VertexColors
+		})
+		let lutColors:number[] = []
+		let anyTHREE = THREE as any
+		if ('Lut' in THREE) {
+			lut = new anyTHREE.Lut(colorMap, numberOfColors)
+			lut.setMax(2000)
+			lut.setMin(0)
+			const anyGeometry = <any>geometry
+			for (let i=0;i < anyGeometry.attributes.pressure.array.length; i++) {
+				let colorValue = anyGeometry.attributes.pressure.array[i]
+				let color = lut.getColor(colorValue)
+				if (color === undefined) {
+					console.log('ERROR: ' + colorValue)
+				} else {
+					lutColors[3*i] = color.r
+					lutColors[3*i + 1] = color.g
+					lutColors[3*i + 2] = color.b
+				}
+			}
+			geometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(lutColors), 3))
+			mesh = new THREE.Mesh(geometry, material)
+			geometry.computeBoundingBox()
+			let boundingBox:THREE.Box3 = geometry.boundingBox
+			let center = boundingBox.getCenter()
+			if (position === undefined) {
+				position = new THREE.Vector3(center.x, center.y, center.z)
+			}
+			scene.add(mesh)
+		}
+	})
+}
+
+function rotateAroundWorldAxis(object:THREE.Object3D, axis:THREE.Vector3, radians:number) {
+	if(!axis) return
+	rotWorldMatrix = new THREE.Matrix4()
+	rotWorldMatrix.makeRotationAxis(axis.normalize(), radians)
+	rotWorldMatrix.multiply(object.matrix)
+
+	object.matrix = rotWorldMatrix
+	object.rotation.setFromRotationMatrix(object.matrix)
 }
 
 function onWindowResize() {
@@ -65,6 +140,10 @@ function onWindowResize() {
 	camera.updateProjectionMatrix()
 
 	renderer.setSize(window.innerWidth, window.innerHeight)
+}
+
+function onKeyDown(event:KeyboardEvent) {
+
 }
 
 function onDocumentMouseMove(event) {
@@ -80,28 +159,6 @@ function animate() {
 }
 
 function render() {
-	theta += 0.1
-	camera.position.x = radius * Math.sin(THREE.Math.degToRad(theta))
-	camera.position.y = radius * Math.sin(THREE.Math.degToRad(theta))
-	camera.position.z = radius * Math.cos(THREE.Math.degToRad(theta))
-	camera.lookAt(scene.position)
-
-	camera.updateMatrixWorld(true)
-
-	raycaster.setFromCamera(mouse, camera)
-
-	let intersects = raycaster.intersectObjects(scene.children)
-
-	if (intersects.length > 0) {
-		if (INTERSECTED != intersects[0].object) {
-			if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex)
-			INTERSECTED = intersects[0].object
-			INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex()
-			INTERSECTED.material.emissive.setHex(0xff0000)
-		}
-	} else {
-		if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex )
-		INTERSECTED = null
-	}
+	rotateAroundWorldAxis(mesh, position, Math.PI/180)
 	renderer.render(scene, camera)
 }

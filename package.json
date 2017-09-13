@@ -23,8 +23,10 @@
     "awesome-typescript-loader": "latest",
     "browser-sync": "latest",
     "browser-sync-webpack-plugin": "latest",
+    "copy-webpack-plugin": "^4.0.1",
     "css-loader": "latest",
     "extract-text-webpack-plugin": "latest",
+    "file-loader": "^0.11.2",
     "html-webpack-plugin": "latest",
     "json-loader": "latest",
     "progress-bar-webpack-plugin": "latest",
@@ -35,6 +37,7 @@
   },
   "dependencies": {
     "stats.js": "github:mrdoob/stats.js",
-    "three": "latest"
+    "three": "latest",
+    "three-lut": "^79.0.1"
   }
 }
