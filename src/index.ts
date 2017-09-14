@@ -1,5 +1,6 @@
 /**
  * Copy webgl_buffergeometry_instancing_billboards code
+ * Copy webgl_geometry_colors code
  */
 
 // add styles
