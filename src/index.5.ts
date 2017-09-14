@@ -1,5 +1,5 @@
 /**
- * Copy webgl_buffergeometry_instancing_billboards code
+ * Copy interactive_voxel_painter code
  */
 
 // add styles
