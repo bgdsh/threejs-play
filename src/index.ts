@@ -1,39 +1,37 @@
 /**
- * Copy geometry/colors/lookuptable code
+ * Copy interactive_voxel_painter code
  */
 
 // add styles
 import './style.css'
 // three.js
 import * as THREE from 'three'
-import THREELut from './three.lut'
-THREELut(THREE)
 import {default as Stats} from 'stats.js/src/Stats'
-
+let stats
 let container:HTMLDivElement
 let camera:THREE.PerspectiveCamera
 let scene:THREE.Scene 
-let ambientLight:THREE.AmbientLight
-let directionalLight:THREE.DirectionalLight
-let raycaster:THREE.Raycaster
 let renderer:THREE.WebGLRenderer
 
-let colorMap:String
-let numberOfColors:Number
-let legendLayout:String
-let lut
+let plane:THREE.Mesh
+let cube:THREE.Mesh
 
-let mouse = new THREE.Vector2()
-let position:THREE.Vector3
-let mesh:THREE.Mesh
-let rotWorldMatrix:THREE.Matrix4
-let INTERSECTED
-let radius = 100
-let theta = 0
-let stats
+let raycaster:THREE.Raycaster
+let mouse:THREE.Vector2 = new THREE.Vector2()
+let gridHelper:THREE.GridHelper
+let isShiftDown:Boolean = false
+
+let rollOverGeo:THREE.BoxGeometry
+let rollOverMesh:THREE.Mesh
+let rollOverMaterial:THREE.MeshLambertMaterial
+
+let cubeGeo:THREE.BoxGeometry
+let cubeMaterial
+
+let objects:THREE.Object3D[] = []
 
 init()
-animate()
+// animate()
 
 function init() {
 	container = document.createElement('div')
@@ -44,30 +42,45 @@ function init() {
 	scene.background = new THREE.Color(0xffffff)
 
 	//Camera
-	camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 1, 10000)
-	camera.position.x = 17
-	camera.position.y = 9
-	camera.position.z = 32
-	camera.name = 'camera'
-	scene.add(camera)
+	camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000)
+	camera.position.set(500, 800, 1300)
+	camera.lookAt(new THREE.Vector3())
 
-	// Light
-	ambientLight = new THREE.AmbientLight(0x4444)
-	ambientLight.name = 'ambientLight'
+	// roll-over helpers
+	rollOverGeo = new THREE.BoxGeometry(50, 50, 50)
+	rollOverMaterial = new THREE.MeshLambertMaterial({
+		color: 0xffffff,
+		opacity: 0.5,
+		transparent: true
+	})
+	rollOverMesh = new THREE.Mesh(rollOverGeo, rollOverMaterial)
+	scene.add(rollOverMesh)
+
+	// cubes
+	cubeGeo = new THREE.BoxGeometry(50, 50, 50)
+	cubeMaterial = new THREE.MeshLambertMaterial({
+		color: 0xfeb74c,
+		map: new THREE.TextureLoader().load('textures/square-outline-textured.png')
+	})
+
+	// gird
+	gridHelper = new THREE.GridHelper(1000, 20)
+	scene.add(gridHelper)
+
+	raycaster = new THREE.Raycaster()
+	mouse = new THREE.Vector2()
+
+	let geometry = new THREE.PlaneBufferGeometry(1000, 1000)
+	geometry.rotateX(- Math.PI / 2)
+	plane = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({visible: true}))
+	plane.name = '我是平面'
+	objects.push(plane)
+
+	let ambientLight = new THREE.AmbientLight(0x606060)
 	scene.add(ambientLight)
 
-	colorMap = 'rainbow'
-	numberOfColors = 512
-
-	legendLayout = 'vertical'
-
-	loadModel(colorMap, numberOfColors, legendLayout)
-
-	directionalLight = new THREE.DirectionalLight(0xffffff, 0.7)
-	directionalLight.position.x = 17
-	directionalLight.position.y = 9
-	directionalLight.position.z = 30
-	directionalLight.name = 'directionalLight'
+	let directionalLight = new THREE.DirectionalLight(0xffffff)
+	directionalLight.position.set(1, 0.75, 0.5).normalize()
 	scene.add(directionalLight)
 
 	renderer = new THREE.WebGLRenderer({antialias: true})
@@ -78,10 +91,12 @@ function init() {
 	stats = new Stats()
 	container.appendChild(stats.dom)
 	document.addEventListener('mousemove', onDocumentMouseMove, false)
+	document.addEventListener('mousedown', onDocumentMouseDown, false)
 	window.addEventListener('resize', onWindowResize, false)
 
 	window.addEventListener('resize', onWindowResize, false)
 	window.addEventListener('keydown', onKeyDown, true)
+	window.addEventListener('keyup', onKeyUp, true)
 }
 
 function loadModel(colorMap:String, numberOfColors:Number, legendLayout:String) {
@@ -96,43 +111,7 @@ function loadModel(colorMap:String, numberOfColors:Number, legendLayout:String) 
 		})
 		let lutColors:number[] = []
 		let anyTHREE = THREE as any
-		if ('Lut' in THREE) {
-			lut = new anyTHREE.Lut(colorMap, numberOfColors)
-			lut.setMax(2000)
-			lut.setMin(0)
-			const anyGeometry = <any>geometry
-			for (let i=0;i < anyGeometry.attributes.pressure.array.length; i++) {
-				let colorValue = anyGeometry.attributes.pressure.array[i]
-				let color = lut.getColor(colorValue)
-				if (color === undefined) {
-					console.log('ERROR: ' + colorValue)
-				} else {
-					lutColors[3*i] = color.r
-					lutColors[3*i + 1] = color.g
-					lutColors[3*i + 2] = color.b
-				}
-			}
-			geometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(lutColors), 3))
-			mesh = new THREE.Mesh(geometry, material)
-			geometry.computeBoundingBox()
-			let boundingBox:THREE.Box3 = geometry.boundingBox
-			let center = boundingBox.getCenter()
-			if (position === undefined) {
-				position = new THREE.Vector3(center.x, center.y, center.z)
-			}
-			scene.add(mesh)
-		}
 	})
-}
-
-function rotateAroundWorldAxis(object:THREE.Object3D, axis:THREE.Vector3, radians:number) {
-	if(!axis) return
-	rotWorldMatrix = new THREE.Matrix4()
-	rotWorldMatrix.makeRotationAxis(axis.normalize(), radians)
-	rotWorldMatrix.multiply(object.matrix)
-
-	object.matrix = rotWorldMatrix
-	object.rotation.setFromRotationMatrix(object.matrix)
 }
 
 function onWindowResize() {
@@ -143,22 +122,61 @@ function onWindowResize() {
 }
 
 function onKeyDown(event:KeyboardEvent) {
+	switch(event.keyCode) {
+		case 16: isShiftDown = true; break
+	}
+}
 
+function onKeyUp(event:KeyboardEvent) {
+	switch(event.keyCode) {
+		case 16: isShiftDown = false; break
+	}	
 }
 
 function onDocumentMouseMove(event) {
 	event.preventDefault()
 	mouse.x = (event.clientX / window.innerWidth) * 2 -1
 	mouse.y = - (event.clientY / window.innerHeight) * 2 + 1
+	raycaster.setFromCamera(mouse, camera)
+	let intersects = raycaster.intersectObjects(objects)
+	if (intersects.length > 0) {
+		let intersect = intersects[0]
+		rollOverMesh.position.copy(intersect.point).add(intersect.face.normal)
+		rollOverMesh.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25)
+	}
+	render()
 }
 
-function animate() {
-	requestAnimationFrame(animate)
+function onDocumentMouseDown(event:MouseEvent) {
+	event.preventDefault()
+	mouse.x = (event.clientX / window.innerWidth) * 2 -1
+	mouse.y = - (event.clientY / window.innerHeight) * 2 + 1
+	raycaster.setFromCamera(mouse, camera)
+	let intersects = raycaster.intersectObjects(objects)
+	if (intersects.length > 0) {
+		let intersect = intersects[0]
+		if (isShiftDown) {
+			if (intersect.object !== plane) {
+				scene.remove(intersect.object)
+				objects.splice(objects.indexOf(intersect.object), 1)
+			}
+		} else {
+			let voxel = new THREE.Mesh(cubeGeo, cubeMaterial)
+			voxel.position.copy(intersect.point).add(intersect.face.normal)
+			voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25)
+			scene.add(voxel)
+			objects.push(voxel)
+		}
+	}
 	render()
-	stats.update()
 }
+
+// function animate() {
+// 	requestAnimationFrame(animate)
+// 	render()
+// 	stats.update()
+// }
 
 function render() {
-	rotateAroundWorldAxis(mesh, position, Math.PI/180)
 	renderer.render(scene, camera)
 }

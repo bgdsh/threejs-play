@@ -59,6 +59,7 @@ module.exports = {
         HTMLWebpackPluginConfig,
         BrowserSyncPluginConfig,
         ProgressBarPluginConfig,
-        new CopyWebpackPlugin([{from: './src/models', to: 'models'}])
+        new CopyWebpackPlugin([{from: './src/models', to: 'models'}]),
+        new CopyWebpackPlugin([{from: './src/textures', to: 'textures'}])
     ]
 }
