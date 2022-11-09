@@ -23,7 +23,7 @@
     "awesome-typescript-loader": "latest",
     "browser-sync": "latest",
     "browser-sync-webpack-plugin": "latest",
-    "copy-webpack-plugin": "^4.0.1",
+    "copy-webpack-plugin": "^4.6.0",
     "css-loader": "latest",
     "extract-text-webpack-plugin": "latest",
     "file-loader": "^0.11.2",
